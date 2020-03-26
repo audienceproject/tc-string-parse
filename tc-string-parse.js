@@ -1,5 +1,3 @@
-/* eslint-env amd, node, browser */
-
 "use strict";
 
 (function (root, factory) {
