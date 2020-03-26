@@ -11,7 +11,11 @@
 }(typeof self === "undefined" ? this : self, function () {
     var decodeBase64 = function (str) {
         if (typeof atob === "function") {
-            return atob(str);
+            var base64 = str.
+                replace(/_/g, "/").
+                replace(/-/g, "+");
+
+            return atob(base64);
         }
 
         return Buffer.from(str, "base64").toString("binary");
