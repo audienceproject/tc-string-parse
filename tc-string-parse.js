@@ -9,39 +9,57 @@
         root.TCStringParse = factory();
     }
 }(typeof self === "undefined" ? this : self, function () {
-    var decodeBase64 = function (str) {
-        if (typeof atob === "function") {
-            var base64 = str.
-                replace(/_/g, "/").
-                replace(/-/g, "+");
-
-            return atob(base64);
-        }
-
-        return Buffer.from(str, "base64").toString("binary");
-    };
-
-    var decodeToBinary = function (str) {
+    var decodeBinary = function (string) {
         var result = "";
 
-        for (var index = 0; index < str.length; index += 1) {
-            var bits = str.charCodeAt(index).toString(2);
-            var pad = "0".repeat(8 - bits.length);
+        for (var index = 0, length = string.length; index < length; index += 1) {
+            var bits = string.charCodeAt(index).toString(2);
+            var pad = "00000000".slice(0, 8 - bits.length);
             result += pad + bits;
         }
 
         return result;
     };
 
-    var decodeBinaryToInt = function (bits) {
-        return parseInt(bits, 2);
+    var decodeBase64 = function (string) {
+        if (typeof atob === "function") {
+            var stringFixed = string.
+                replace(/_/g, "/").
+                replace(/-/g, "+");
+
+            try {
+                return atob(stringFixed);
+            } catch (error) {
+                throw new Error("Unable to decode transparency and consent string");
+            }
+        }
+
+        if (typeof Buffer === "function") {
+            return Buffer.from(string, "base64").toString("binary");
+        }
+
+        throw new Error("Unable to detect base64 decoder");
+    };
+
+    var decodeInt = function (bits) {
+        return parseInt(bits, 2) || 0;
     };
 
     var decodeDate = function (bits) {
-        var date = new Date();
-        var time = decodeBinaryToInt(bits) * 100;
-        date.setTime(time);
-        return date;
+        return decodeInt(bits) * 100;
+    };
+
+    var decodeString = function (bits) {
+        var charOffset = "A".charCodeAt();
+        var items = bits.match(/.{6}/g);
+        var result = "";
+
+        for (var index = 0, length = items.length; index < length; index += 1) {
+            var charCode = decodeInt(items[index]) + charOffset;
+            result += String.fromCharCode(charCode);
+        }
+
+        return result;
     };
 
     var decodeBoolean = function (bit) {
@@ -49,31 +67,59 @@
     };
 
     var decodeFlags = function (bits) {
-        return bits.
-            split("").
-            reduce(function (result, bit, index) {
-                if (decodeBoolean(bit)) {
-                    result[index + 1] = true;
-                }
+        var items = bits.split("");
+        var result = {};
 
-                return result;
-            }, {});
+        for (var index = 0, length = items.length; index < length; index += 1) {
+            if (decodeBoolean(items[index])) {
+                result[index + 1] = true;
+            }
+        }
+
+        return result;
     };
 
-    var decodeBinaryToLanguageCode = function (bits) {
-        var charOffset = "A".charCodeAt();
+    var getSegments = function (string) {
+        if (typeof string !== "string") {
+            throw new Error("Invalid transparency and consent string specified");
+        }
 
-        return bits.
-            match(/.{6}/g).
-            reduce(function (result, block) {
-                var char = String.fromCharCode(decodeBinaryToInt(block) + charOffset);
-                return result + char;
-            }, "");
+        var stringBlocks = string.split(".");
+        var result = [];
+
+        for (var index = 0, length = stringBlocks.length; index < length; index += 1) {
+            result.push(decodeBinary(decodeBase64(stringBlocks[index])));
+        }
+
+        var version = decodeInt(result[0].slice(0, 6));
+        if (version !== 2) {
+            throw new Error("Unsupported transparency and consent string version");
+        }
+
+        return result;
     };
 
-    var stringSchema = [{
-        key: "core",
-        data: [{
+    var getQueue = function (segments) {
+        var queuePurposes = [{
+            key: "purposeConsents",
+            size: 24,
+            decoder: decodeFlags
+        }, {
+            key: "purposeLegitimateInterests",
+            size: 24,
+            decoder: decodeFlags
+        }];
+
+        var queueVendors = [{
+            key: "maxVendorId",
+            size: 16
+        }, {
+            key: "isRangeEncoding",
+            size: 1,
+            decoder: decodeBoolean
+        }];
+
+        var queueCore = [{
             key: "version",
             size: 6
         }, {
@@ -96,7 +142,7 @@
         }, {
             key: "consentLanguage",
             size: 12,
-            decoder: decodeBinaryToLanguageCode
+            decoder: decodeString
         }, {
             key: "vendorListVersion",
             size: 12
@@ -115,49 +161,214 @@
             key: "specialFeatureOptIns",
             size: 12,
             decoder: decodeFlags
+        }].concat(queuePurposes).concat({
+            key: "purposeOneTreatment",
+            size: 1,
+            decoder: decodeBoolean
         }, {
-            key: "purposesConsents",
-            size: 24,
-            decoder: decodeFlags
+            key: "publisherCountryCode",
+            size: 12,
+            decoder: decodeString
         }, {
-            key: "purposeLegitimateInterests",
-            size: 24,
-            decoder: decodeFlags
-        }]
-    }];
+            key: "vendorConsents",
+            queue: [{
+                key: "maxVendorId",
+                size: 16
+            }, {
+                key: "isRangeEncoding",
+                size: 1,
+                decoder: decodeBoolean
+            }]
+        }, {
+            key: "vendorLegitimateInterests",
+            queue: queueVendors
+        });
 
-    return function (str) {
-        if (typeof str !== "string") {
-            throw new Error("Invalid transparency and consent string specified");
-        }
+        var queueSegment = [{
+            key: "segmentType",
+            size: 3
+        }];
 
-        var segments = str.
-            split(".").
-            map(function (segment) {
-                return decodeToBinary(decodeBase64(segment));
+        var queueDisclosedVendors = [].
+            concat(queueSegment).
+            concat(queueVendors);
+
+        var queueAllowedVendors = [].
+            concat(queueSegment).
+            concat(queueVendors);
+
+        var queuePublisherTC = [].
+            concat(queueSegment).
+            concat(queuePurposes).
+            concat({
+                key: "numCustomPurposes",
+                size: 6
             });
 
-        if (decodeBinaryToInt(segments[0].slice(0, 6)) !== 2) {
-            throw new Error("Unsupported transparency and consent version");
+        var result = [{
+            key: "core",
+            queue: queueCore
+        }];
+
+        for (var index = 1; index < segments.length; index += 1) {
+            var segment = segments[index];
+
+            var type = decodeInt(segment.slice(0, 3));
+
+            if (type === 1) {
+                result.push({
+                    key: "disclosedVendors",
+                    queue: queueDisclosedVendors
+                });
+            } else
+
+            if (type === 2) {
+                result.push({
+                    key: "allowedVendors",
+                    queue: queueAllowedVendors
+                });
+            } else
+
+            if (type === 3) {
+                result.push({
+                    key: "publisherTC",
+                    queue: queuePublisherTC
+                });
+            }
         }
 
-        return stringSchema.
-            reduce(function (result, block, index) {
-                var segment = segments[index];
-                if (segment) {
-                    var bitOffset = 0;
+        return result;
+    };
 
-                    result[block.key] = block.data.
-                        reduce(function (blockModel, data) {
-                            var bits = segment.slice(bitOffset, bitOffset + data.size);
-                            blockModel[data.key] = (data.decoder || decodeBinaryToInt)(bits);
-                            bitOffset += data.size;
+    return function (string) {
+        var reduceQueue = function (queue, schema, value, result) {
+            var reduceEntries = function () {
+                if (result.numEntries) {
+                    result.numEntries -= 1;
 
-                            return blockModel;
-                        }, {});
+                    queue.push({
+                        key: "isRange",
+                        size: 1,
+                        decoder: decodeBoolean
+                    }, {
+                        key: "startVendorId",
+                        size: 16
+                    });
                 }
+            };
 
-                return result;
-            }, {});
+            if (schema.key === "isRangeEncoding") {
+                queue.push(value ? {
+                    key: "numEntries",
+                    size: 12
+                } : {
+                    key: "bitField",
+                    size: result.maxVendorId,
+                    decoder: decodeFlags
+                });
+            } else
+
+            if (schema.key === "numEntries") {
+                result.rangeEntry = {};
+                reduceEntries();
+            } else
+
+            if (schema.key === "isRange") {
+                if (value) {
+                    queue.push({
+                        key: "endVendorId",
+                        size: 16
+                    });
+                }
+            } else
+
+            if (schema.key === "startVendorId") {
+                if (!result.isRange) {
+                    result.rangeEntry[value] = true;
+                    reduceEntries();
+                }
+            } else
+
+            if (schema.key === "endVendorId") {
+                for (var vendorId = result.startVendorId; vendorId <= result.endVendorId; vendorId += 1) {
+                    result.rangeEntry[vendorId] = true;
+                }
+                reduceEntries();
+            } else
+
+            if (schema.key === "numCustomPurposes") {
+                queue.push({
+                    key: "customPurposeConsents",
+                    size: result.numCustomPurposes,
+                    decoder: decodeFlags
+                }, {
+                    key: "customPurposeLegitimateInterests",
+                    size: result.numCustomPurposes,
+                    decoder: decodeFlags
+                });
+            }
+        };
+
+        var offset = 0;
+        var getSchemaResult = function (schema, bits) {
+            var value = bits.slice(offset, offset + schema.size);
+            offset += schema.size;
+            return (schema.decoder || decodeInt)(value);
+        };
+
+        var getSectionResult = function (sectionSchema, bits) {
+            if (!sectionSchema.queue) {
+                return getSchemaResult(sectionSchema, bits);
+            }
+
+            var result = {};
+
+            for (var index = 0; index < sectionSchema.queue.length; index += 1) {
+                var schema = sectionSchema.queue[index];
+
+                var value = getSchemaResult(schema, bits);
+                result[schema.key] = value;
+
+                reduceQueue(sectionSchema.queue, schema, value, result);
+            }
+
+            return result.bitField || result.rangeEntry || result;
+        };
+
+        var getBlockResult = function (blockSchema, bits) {
+            var result = {};
+
+            for (var index = 0; index < blockSchema.queue.length; index += 1) {
+                var schema = blockSchema.queue[index];
+
+                var value = getSectionResult(schema, bits);
+                result[schema.key] = value;
+
+                reduceQueue(blockSchema.queue, schema, value, result);
+            }
+
+            return result.bitField || result.rangeEntry || result;
+        };
+
+        var getResult = function () {
+            var segments = getSegments(string);
+            var queue = getQueue(segments);
+
+            var result = {};
+
+            for (var index = 0; index < queue.length; index += 1) {
+                var schema = queue[index];
+                var bits = segments[index];
+
+                var value = getBlockResult(schema, bits);
+                result[schema.key] = value;
+
+                offset = 0;
+            }
+
+            return result;
+        };
+
+        return getResult();
     };
 }));
