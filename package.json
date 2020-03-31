@@ -1,22 +1,32 @@
 {
   "name": "tc-string-parse",
-  "description": "Simple parser for transparency and consent strings compatible with TCF2.0 an.",
-  "version": "1.1.0",
+  "description": "Simple parser for transparency and consent strings compatible with TCF2.0.",
+  "version": "1.1.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/audienceproject/tc-string-parse"
   },
-  "keywords": ["tcf", "transparency", "consent", "gdpr", "cmp", "iab"],
+  "keywords": [
+    "tcf",
+    "transparency",
+    "consent",
+    "gdpr",
+    "cmp",
+    "iab"
+  ],
   "license": "Apache-2.0",
   "main": "tc-string-parse.js",
   "scripts": {
     "test": "ava --verbose",
     "lint": "eslint .",
-    "prepublishOnly": "npm install && npm run test && npm run lint"
+    "compress": "uglifyjs --compress --mangle -- tc-string-parse.js > tc-string-parse.min.js",
+    "prepublishOnly": "npm install && npm run test && npm run lint && npm run compress"
   },
+  "dependencies": {},
   "devDependencies": {
     "ava": "3.5.1",
-    "eslint": "6.8.0"
+    "eslint": "6.8.0",
+    "uglify-js": "3.8.1"
   },
   "engines": {
     "node": ">=5.10.0"

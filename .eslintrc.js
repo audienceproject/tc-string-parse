@@ -1,7 +1,10 @@
 "use strict";
 
 module.exports = {
-    ignorePatterns: "!.*",
+    ignorePatterns: [
+        "!.*",
+        "*.min.js"
+    ],
 
     extends: "eslint:all",
 

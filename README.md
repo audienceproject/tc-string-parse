@@ -20,7 +20,7 @@ TCStringParse(consentString);
 ### Browser (IE 9+ with atob polyfill)
 
 ```html
-<script src="path/to/tc-string-parse.js"></script>
+<script src="path/to/tc-string-parse.min.js"></script>
 
 <script>
   const consentString = ''; // your consent string
