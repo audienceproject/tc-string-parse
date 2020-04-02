@@ -1,6 +1,6 @@
 {
   "name": "tc-string-parse",
-  "description": "Simple parser for transparency and consent strings compatible with TCF2.0.",
+  "description": "Simple JavaScript parser for transparency and consent strings compatible with TCF 2.0.",
   "version": "1.1.1",
   "repository": {
     "type": "git",
