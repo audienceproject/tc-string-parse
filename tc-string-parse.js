@@ -158,7 +158,7 @@
             size: 1,
             decoder: decodeBoolean
         }, {
-            key: "specialFeatureOptIns",
+            key: "specialFeatureOptins",
             size: 12,
             decoder: decodeFlags
         }].concat(queuePurposes).concat({
@@ -185,7 +185,6 @@
         });
 
         var queueSegment = [{
-            key: "segmentType",
             size: 3
         }];
 
