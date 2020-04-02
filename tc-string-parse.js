@@ -182,6 +182,12 @@
         }, {
             key: "vendorLegitimateInterests",
             queue: queueVendors
+        }, {
+            key: "publisherRestrictions",
+            queue: [{
+                key: "numPubRestrictions",
+                size: 12
+            }]
         });
 
         var queueSegment = [{
@@ -241,7 +247,28 @@
 
     return function (string) {
         var reduceQueue = function (queue, schema, value, result) {
-            var reduceEntries = function () {
+            var reduceNumPubEntries = function () {
+                if (result.pubRestrictionEntry && result.rangeEntry) {
+                    result.pubRestrictionEntry = Object.assign(result.pubRestrictionEntry, result.rangeEntry);
+                }
+
+                if (result.numPubRestrictions) {
+                    result.numPubRestrictions -= 1;
+
+                    queue.push({
+                        key: "purposeId",
+                        size: 6
+                    }, {
+                        key: "restrictionType",
+                        size: 2
+                    }, {
+                        key: "numEntries",
+                        size: 12
+                    });
+                }
+            };
+
+            var reduceNumEntries = function () {
                 if (result.numEntries) {
                     result.numEntries -= 1;
 
@@ -253,7 +280,22 @@
                         key: "startVendorId",
                         size: 16
                     });
+                } else {
+                    reduceNumPubEntries();
                 }
+            };
+
+            var getRangeResult = function () {
+                if (result.purposeId) {
+                    return [{
+                        purpose: result.purposeId,
+                        isAllowed: result.restrictionType !== 0,
+                        isConsentRequired: result.restrictionType === 1,
+                        isLegitimateInterestRequired: result.restrictionType === 2
+                    }];
+                }
+
+                return true;
             };
 
             if (schema.key === "isRangeEncoding") {
@@ -269,7 +311,7 @@
 
             if (schema.key === "numEntries") {
                 result.rangeEntry = {};
-                reduceEntries();
+                reduceNumEntries();
             } else
 
             if (schema.key === "isRange") {
@@ -283,16 +325,16 @@
 
             if (schema.key === "startVendorId") {
                 if (!result.isRange) {
-                    result.rangeEntry[value] = true;
-                    reduceEntries();
+                    result.rangeEntry[value] = getRangeResult();
+                    reduceNumEntries();
                 }
             } else
 
             if (schema.key === "endVendorId") {
                 for (var vendorId = result.startVendorId; vendorId <= result.endVendorId; vendorId += 1) {
-                    result.rangeEntry[vendorId] = true;
+                    result.rangeEntry[vendorId] = getRangeResult();
                 }
-                reduceEntries();
+                reduceNumEntries();
             } else
 
             if (schema.key === "numCustomPurposes") {
@@ -305,10 +347,20 @@
                     size: result.numCustomPurposes,
                     decoder: decodeFlags
                 });
+            } else
+
+            if (schema.key === "numPubRestrictions") {
+                result.pubRestrictionEntry = {};
+                reduceNumPubEntries();
             }
         };
 
+        var reduceResult = function (result) {
+            return result.pubRestrictionEntry || result.rangeEntry || result.bitField || result;
+        };
+
         var offset = 0;
+
         var getSchemaResult = function (schema, bits) {
             var value = bits.slice(offset, offset + schema.size);
             offset += schema.size;
@@ -331,7 +383,7 @@
                 reduceQueue(sectionSchema.queue, schema, value, result);
             }
 
-            return result.bitField || result.rangeEntry || result;
+            return reduceResult(result);
         };
 
         var getBlockResult = function (blockSchema, bits) {
@@ -346,7 +398,7 @@
                 reduceQueue(blockSchema.queue, schema, value, result);
             }
 
-            return result.bitField || result.rangeEntry || result;
+            return reduceResult(result);
         };
 
         var getResult = function () {

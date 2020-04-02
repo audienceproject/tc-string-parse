@@ -24,7 +24,7 @@ ava.before((test) => {
     const emptyConsent = "COwxIfeOwxIfeALAWhDAAcCAAAAAAAAAAAAAAAAAAAAA.IF0EWSQgAYWwho0QUBzBAIYAfJgSCAMgSAAQIoCkFQICERBAEKiAQHAEQJAAAGBAAkACAAQAoHCBMCQABgAARiRCEQECIDRNABIBAggAKYQFAAARmikHC3ZCY702yOmQ.YAAAAAAAAAAAAAAAAAA";
     test.context.empty = parse(emptyConsent);
 
-    const givenConsent = "COuDmHAOuG5DAALAWhDAAcCIAEAAACAAACgADFQAoAEAASAYoABAgAA.IF0EWSQgAYWwho0QUBzBAIYAfJgSCAMgSAAQIoCkFQICERBAEKiAQHAEQJAAAGBAAkACAAQAoHCBMCQABgAARiRCEQECIDRNABIBAggAKYQFAAARmikHC3ZCY702yOmQ.YAAAAAAAAAAAAAAAAAA";
+    const givenConsent = "COuDmHAOuG5DAALAWhENAfCIAEAAACAAACgAAFgGgAIEAMEABAAQEgAgAJDgAQAFgA.IF1kXyQoGY2lho0QUBzBAIYQfJwSCgMgSAAQIsSkNQIWEBBAGPiAQHAGYJAQAGBAEkACBAQAoHGBMCQABgAgRiRCMQEGIDzNIBIBAggkaI0FACCVmmkHC3ZCY70-6u_-";
     test.context.given = parse(givenConsent);
 
     const exampleConsent = "COw4XqLOw4XqLAAAAAENAXCAAAAAAAAAAAAAAAAAAAAA.IFukWSQgAIQwgI0QEByFAAAAeIAACAIgSAAQAIAgEQACEABAAAgAQFAEAIAAAGBAAgAAAAQAIFAAMCQAAgAAQiRAEQAAAAANAAIAAggAIYQFAAARmggBC3ZCYzU2yIA.QFukWSQgAIQwgI0QEByFAAAAeIAACAIgSAAQAIAgEQACEABAAAgAQFAEAIAAAGBAAgAAAAQAIFAAMCQAAgAAQiRAEQAAAAANAAIAAggAIYQFAAARmggBC3ZCYzU2yIA.YAAAAAAAAAAAAAAAAAA";
@@ -56,11 +56,11 @@ ava("core consent screen", (test) => {
 });
 
 ava("core consent language", (test) => {
-    test.is(test.context.given.core.consentLanguage, "DA");
+    test.is(test.context.given.core.consentLanguage, "EN");
 });
 
 ava("core vendor list version", (test) => {
-    test.is(test.context.given.core.vendorListVersion, 28);
+    test.is(test.context.given.core.vendorListVersion, 31);
 });
 
 ava("core policy version", (test) => {
@@ -76,8 +76,8 @@ ava("core use non standard stacks", (test) => {
 });
 
 ava("core special feature opt ins", (test) => {
-    test.deepEqual(test.context.empty.core.specialFeatureOptIns, {});
-    test.deepEqual(test.context.given.core.specialFeatureOptIns, {
+    test.deepEqual(test.context.empty.core.specialFeatureOptins, {});
+    test.deepEqual(test.context.given.core.specialFeatureOptins, {
         1: true
     });
 });
@@ -109,7 +109,7 @@ ava("core vendor consents", (test) => {
     test.deepEqual(test.context.given.core.vendorConsents, {
         8: true,
         9: true,
-        394: true
+        11: true
     });
 });
 
