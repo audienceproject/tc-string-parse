@@ -1,7 +1,7 @@
 {
   "name": "tc-string-parse",
   "description": "Simple JavaScript parser for transparency and consent strings compatible with TCF 2.0.",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/audienceproject/tc-string-parse"
@@ -24,6 +24,7 @@
   },
   "dependencies": {},
   "devDependencies": {
+    "Base64": "github:davidchambers/Base64.js",
     "ava": "3.5.1",
     "eslint": "6.8.0",
     "uglify-js": "3.8.1"

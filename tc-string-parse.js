@@ -249,7 +249,12 @@
         var reduceQueue = function (queue, schema, value, result) {
             var reduceNumPubEntries = function () {
                 if (result.pubRestrictionEntry && result.rangeEntry) {
-                    result.pubRestrictionEntry = Object.assign(result.pubRestrictionEntry, result.rangeEntry);
+                    for (var key in result.rangeEntry) {
+                        if (Object.prototype.hasOwnProperty.call(result.rangeEntry, key)) {
+                            result.pubRestrictionEntry[key] = (result.pubRestrictionEntry[key] || []).
+                                concat(result.rangeEntry[key]);
+                        }
+                    }
                 }
 
                 if (result.numPubRestrictions) {

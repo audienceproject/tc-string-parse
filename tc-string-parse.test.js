@@ -120,6 +120,12 @@ ava("core vendor legitimate interests", (test) => {
     });
 });
 
+
+ava("core publisher restrictions", (test) => {
+    test.deepEqual(test.context.empty.core.publisherRestrictions, {});
+    test.deepEqual(Object.keys(test.context.given.core.publisherRestrictions), ["8", "9", "11"]);
+});
+
 ava("disclosed vendors", (test) => {
     test.is(Object.keys(test.context.example.disclosedVendors).length, 115);
 });
