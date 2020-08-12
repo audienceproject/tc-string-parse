@@ -12,12 +12,12 @@ ava("empty string", (test) => {
 
 ava("invalid string", (test) => {
     const error = test.throws(() => parse("!!!"));
-    test.is(error.message, "Unsupported transparency and consent string version");
+    test.is(error.message, "Unsupported transparency and consent string version “0”");
 });
 
 ava("unsupported version", (test) => {
     const error = test.throws(() => parse("BOwxS1NOwxS1UAAAAAAADAAAAAAuiAAA"));
-    test.is(error.message, "Unsupported transparency and consent string version");
+    test.is(error.message, "Unsupported transparency and consent string version “1”");
 });
 
 ava.before((test) => {

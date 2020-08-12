@@ -51,7 +51,7 @@
 
     var decodeString = function (bits) {
         var charOffset = "A".charCodeAt();
-        var items = bits.match(/.{6}/g);
+        var items = bits.match(/.{6}/g) || [];
         var result = "";
 
         for (var index = 0, length = items.length; index < length; index += 1) {
@@ -93,7 +93,7 @@
 
         var version = decodeInt(result[0].slice(0, 6));
         if (version !== 2) {
-            throw new Error("Unsupported transparency and consent string version");
+            throw new Error("Unsupported transparency and consent string version “" + version + "”");
         }
 
         return result;
