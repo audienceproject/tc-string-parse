@@ -26,9 +26,9 @@
   "dependencies": {},
   "devDependencies": {
     "Base64": "github:davidchambers/Base64.js",
-    "ava": "3.5.1",
-    "eslint": "6.8.0",
-    "uglify-js": "3.8.1"
+    "ava": "3.11.1",
+    "eslint": "7.6.0",
+    "uglify-js": "3.10.1"
   },
   "engines": {
     "node": ">=5.10.0"
