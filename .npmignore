@@ -1,2 +1,4 @@
 .eslintrc.js
+package-lock.json
 test.*
+yarn.lock
