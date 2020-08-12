@@ -35,9 +35,18 @@ module.exports = {
         "padded-blocks": "off",
         "prefer-arrow-callback": "off",
         "prefer-destructuring": "off",
+        "prefer-template": "off",
         "quote-props": "off",
         "require-unicode-regexp": "off",
         "sort-keys": "off",
         "vars-on-top": "off"
-    }
+    },
+
+    overrides: [{
+        files: "cli.js",
+        rules: {
+            "no-console": "off",
+            "no-process-exit": "off"
+        }
+    }]
 };

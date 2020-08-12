@@ -16,6 +16,7 @@
   ],
   "license": "Apache-2.0",
   "main": "tc-string-parse.js",
+  "bin": "./cli.js",
   "scripts": {
     "test": "ava --verbose",
     "lint": "eslint .",

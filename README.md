@@ -13,10 +13,10 @@ Parser is available as [NPM package](https://www.npmjs.com/package/tc-string-par
 ### NodeJS (>=5.10.0)
 
 ```js
-const TCStringParse = require('tc-string-parse');
+const tcStringParse = require('tc-string-parse');
 
 const consentString = ''; // your consent string
-const consentModel = TCStringParse(consentString);
+const consentModel = tcStringParse(consentString);
 ```
 
 ### Browser (IE 9+ with [atob polyfill](https://caniuse.com/#feat=atob-btoa))
@@ -28,4 +28,10 @@ const consentModel = TCStringParse(consentString);
   var consentString = ''; // your consent string
   var consentModel = TCStringParse(consentString);
 </script>
+```
+
+### Command line
+
+```shell
+tc-string-parse <your consent string>
 ```
