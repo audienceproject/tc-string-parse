@@ -383,7 +383,9 @@
                 var schema = sectionSchema.queue[index];
 
                 var value = getSchemaResult(schema, bits);
-                result[schema.key] = value;
+                if (schema.key) {
+                    result[schema.key] = value;
+                }
 
                 reduceQueue(sectionSchema.queue, schema, value, result);
             }
@@ -398,7 +400,9 @@
                 var schema = blockSchema.queue[index];
 
                 var value = getSectionResult(schema, bits);
-                result[schema.key] = value;
+                if (schema.key) {
+                    result[schema.key] = value;
+                }
 
                 reduceQueue(blockSchema.queue, schema, value, result);
             }
@@ -417,7 +421,9 @@
                 var bits = segments[index];
 
                 var value = getBlockResult(schema, bits);
-                result[schema.key] = value;
+                if (schema.key) {
+                    result[schema.key] = value;
+                }
 
                 offset = 0;
             }
