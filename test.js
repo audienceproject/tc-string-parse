@@ -12,7 +12,7 @@ ava("empty string", (test) => {
 
 ava("invalid string", (test) => {
     const error = test.throws(() => parse("!!!"));
-    test.is(error.message, "Unsupported transparency and consent string version “0”");
+    test.is(error.message, "Unable to decode transparency and consent string");
 });
 
 ava("unsupported version", (test) => {
