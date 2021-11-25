@@ -79,6 +79,46 @@
         return result;
     };
 
+    var objectAssign = function (target) {
+        var to = Object(target);
+
+        for (var index = 1; index < arguments.length; index += 1) {
+            var nextSource = arguments[index];
+
+            if (nextSource !== null) {
+                for (var nextKey in nextSource) {
+                    if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+                        to[nextKey] = nextSource[nextKey];
+                    }
+                }
+            }
+        }
+
+        return to;
+    };
+
+    var applySchemaValue = function (schema, value, result) {
+        if (schema.key && !schema.hidden) {
+            if (schema.parent) {
+                if (!result[schema.parent]) {
+                    result[schema.parent] = {};
+                }
+
+                if (typeof result[schema.parent][schema.key] === "object" && typeof value === "object") {
+                    result[schema.parent][schema.key] = objectAssign(result[schema.parent][schema.key], value);
+                } else {
+                    result[schema.parent][schema.key] = value;
+                }
+            } else if (typeof result[schema.key] === "object" && value === "object") {
+                result[schema.key] = objectAssign(result[schema.key], value);
+            } else {
+                result[schema.key] = value;
+            }
+        }
+
+        return result;
+    };
+
     var getSegments = function (string) {
         if (typeof string !== "string") {
             throw new Error("Invalid transparency and consent string specified");
@@ -101,11 +141,11 @@
 
     var getQueue = function (segments) {
         var queuePurposes = [{
-            key: "purposeConsents",
+            key: "consents",
             size: 24,
             decoder: decodeFlags
         }, {
-            key: "purposeLegitimateInterests",
+            key: "legitimateInterests",
             size: 24,
             decoder: decodeFlags
         }];
@@ -147,10 +187,10 @@
             key: "vendorListVersion",
             size: 12
         }, {
-            key: "policyVersion",
+            key: "tcfPolicyVersion",
             size: 6
         }, {
-            key: "isServiceSpecified",
+            key: "isServiceSpecific",
             size: 1,
             decoder: decodeBoolean
         }, {
@@ -161,16 +201,19 @@
             key: "specialFeatureOptins",
             size: 12,
             decoder: decodeFlags
-        }].concat(queuePurposes).concat({
+        }].concat(queuePurposes.map(function (segment) {
+            return objectAssign({parent: "purpose"}, segment);
+        })).concat({
             key: "purposeOneTreatment",
             size: 1,
             decoder: decodeBoolean
         }, {
-            key: "publisherCountryCode",
+            key: "publisherCC",
             size: 12,
             decoder: decodeString
         }, {
-            key: "vendorConsents",
+            key: "consents",
+            parent: "vendor",
             queue: [{
                 key: "maxVendorId",
                 size: 16
@@ -180,10 +223,12 @@
                 decoder: decodeBoolean
             }]
         }, {
-            key: "vendorLegitimateInterests",
+            key: "legitimateInterests",
+            parent: "vendor",
             queue: queueVendors
         }, {
-            key: "publisherRestrictions",
+            key: "restrictions",
+            parent: "publisher",
             queue: [{
                 key: "numPubRestrictions",
                 size: 12
@@ -202,11 +247,12 @@
             concat(queueSegment).
             concat(queueVendors);
 
-        var queuePublisherTC = [].
+        var queuePublisher = [].
             concat(queueSegment).
             concat(queuePurposes).
             concat({
                 key: "numCustomPurposes",
+                hidden: true,
                 size: 6
             });
 
@@ -222,22 +268,31 @@
 
             if (type === 1) {
                 result.push({
-                    key: "disclosedVendors",
-                    queue: queueDisclosedVendors
+                    key: "outOfBand",
+                    parent: "core",
+                    queue: [{
+                        key: "disclosedVendors",
+                        queue: queueDisclosedVendors
+                    }]
                 });
             } else
 
             if (type === 2) {
                 result.push({
-                    key: "allowedVendors",
-                    queue: queueAllowedVendors
+                    key: "outOfBand",
+                    parent: "core",
+                    queue: [{
+                        key: "allowedVendors",
+                        queue: queueAllowedVendors
+                    }]
                 });
             } else
 
             if (type === 3) {
                 result.push({
-                    key: "publisherTC",
-                    queue: queuePublisherTC
+                    key: "publisher",
+                    parent: "core",
+                    queue: queuePublisher
                 });
             }
         }
@@ -344,11 +399,13 @@
 
             if (schema.key === "numCustomPurposes") {
                 queue.push({
-                    key: "customPurposeConsents",
+                    key: "consents",
+                    parent: "customPurpose",
                     size: result.numCustomPurposes,
                     decoder: decodeFlags
                 }, {
-                    key: "customPurposeLegitimateInterests",
+                    key: "legitimateInterests",
+                    parent: "customPurpose",
                     size: result.numCustomPurposes,
                     decoder: decodeFlags
                 });
@@ -383,10 +440,7 @@
                 var schema = sectionSchema.queue[index];
 
                 var value = getSchemaResult(schema, bits);
-                if (schema.key) {
-                    result[schema.key] = value;
-                }
-
+                result = applySchemaValue(schema, value, result);
                 reduceQueue(sectionSchema.queue, schema, value, result);
             }
 
@@ -400,10 +454,7 @@
                 var schema = blockSchema.queue[index];
 
                 var value = getSectionResult(schema, bits);
-                if (schema.key) {
-                    result[schema.key] = value;
-                }
-
+                result = applySchemaValue(schema, value, result);
                 reduceQueue(blockSchema.queue, schema, value, result);
             }
 
@@ -421,14 +472,18 @@
                 var bits = segments[index];
 
                 var value = getBlockResult(schema, bits);
-                if (schema.key) {
-                    result[schema.key] = value;
-                }
-
+                result = applySchemaValue(schema, value, result);
                 offset = 0;
             }
 
-            return result;
+            return objectAssign({
+                tcString: string,
+                vendor: {},
+                outOfBand: {
+                    disclosedVendors: {},
+                    allowedVendors: {}
+                }
+            }, result.core);
         };
 
         return getResult();
